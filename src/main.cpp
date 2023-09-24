@@ -75,7 +75,9 @@ int main() {
 
     while (!window.ShouldClose()) {   // Detect window close button or ESC key
 
-        double dt = simulation_speed*GetFrameTime(); // Get the delta time
+        // double dt = simulation_speed*GetFrameTime(); // Get the delta time
+        // std::cout << "dt: " << dt << std::endl;
+        double dt = 0.016; // Set the delta time to be consistent at 60 fps 
 
         // ** Calculations ** //
 
@@ -111,9 +113,7 @@ int main() {
             Particle& p_i = particle_instances[i];
             for (int j = i + 1; j < particle_instances.size(); j++) {
                     Particle& p_j = particle_instances[j];
-                    if (p_i.pos != p_j.pos) {
-                        p_i.CalcAccel(p_j, dt);
-                    }
+                    p_i.CalcAccel(p_j, dt);
                 }
         }
         for (int i = 0; i < particle_instances.size(); i++) {
