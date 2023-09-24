@@ -2,10 +2,27 @@
 #include <cmath>
 #include <random>
 #include <format>
+#include <thread>
 #include <raylib-cpp.hpp>
 
 #include "quad_tree.hpp"
 #include "particle.hpp"
+
+void mt_CalcParticleAccels(std::vector<Particle>& particles, double dt, int start, int end) {
+    for (int i = start; i < end; i++) {
+        Particle& p_i = particles[i];
+        for (int j = i + 1; j < particles.size(); j++) {
+            Particle& p_j = particles[j];
+            p_i.CalcAccel(p_j, dt);
+        }
+    }
+}
+
+void mt_UpdateParticles(std::vector<Particle>& particles, double dt, int start, int end) {
+    for (int i = start; i < end; i++) {
+        particles[i].Update(dt);
+    }
+}
 
 int screen_w = 2*800;
 int screen_h = 2*450;
@@ -108,16 +125,38 @@ int main() {
 
         }
 
-        // Update existing particle instances after calculating the accelerations due to gravity
-        for (int i = 0; i < particle_instances.size(); i++) {
-            Particle& p_i = particle_instances[i];
-            for (int j = i + 1; j < particle_instances.size(); j++) {
-                    Particle& p_j = particle_instances[j];
-                    p_i.CalcAccel(p_j, dt);
-                }
+        // Calculate particle accelerations in parallel
+        int numThreads = std::thread::hardware_concurrency(); // Get the number of available CPU cores
+        std::vector<std::thread> threads;
+        int particlesPerThread = particle_instances.size() / numThreads;
+        int start = 0;
+        int end = 0;
+
+        // Create and start threads
+        for (int i = 0; i < numThreads; i++) {
+            start = i * particlesPerThread;
+            end = (i == numThreads - 1) ? particle_instances.size() : (i + 1) * particlesPerThread;
+            threads.emplace_back(mt_CalcParticleAccels, std::ref(particle_instances), dt, start, end);
         }
-        for (int i = 0; i < particle_instances.size(); i++) {
-            particle_instances[i].Update(dt);
+
+        // Wait for threads to finish
+        for (std::thread& t : threads) {
+            t.join();
+        }
+
+        // After all accelerations are calculated, update particles in parallel
+        std::vector<std::thread> updateThreads;
+
+        // Create and start threads for updating particles
+        for (int i = 0; i < numThreads; i++) {
+            start = i * particlesPerThread;
+            end = (i == numThreads - 1) ? particle_instances.size() : (i + 1) * particlesPerThread;
+            updateThreads.emplace_back(mt_UpdateParticles, std::ref(particle_instances), dt, start, end);
+        }
+
+        // Wait for update threads to finish
+        for (std::thread& t : updateThreads) {
+            t.join();
         }
 
         // ** Input Handling ** //
