@@ -65,7 +65,7 @@ void Particle::Update(double dt) {
     // TODO: update particle colour so that it changes with speed
     // std::cout << sqrt((accel.x*accel.x)+(accel.y*accel.y)) << std::endl;
     double mag_vel = sqrt((vel.x*vel.x)+(vel.y*vel.y));
-    double k = 0.01; // smoothness factor
+    double k = 0.0035; // smoothness factor
     if (mass > 0) {
         colour = raylib::Color(255*k*mag_vel / (1+k*mag_vel), 0, 255, 255);
     } 
@@ -84,10 +84,10 @@ void Particle::Update(double dt) {
 void Particle::Draw() const {
 
     // Draw lines for velocity and acceleration
-    int sf1 = 1; // vel line scale factor
-    int sf2 = 2; // accel line scale factor
+    // int sf1 = 1; // vel line scale factor
+    // int sf2 = 2; // accel line scale factor
     // DrawLine(pos.x, pos.y, pos.x+sf1*vel.x, pos.y+sf1*vel.y, raylib::Color::Blue());
     // DrawLine(pos.x, pos.y, pos.x+sf2*accel.x, pos.y+sf2*accel.y, raylib::Color::Red());
 
-    DrawCircle(pos.x, pos.y, size, colour);
+    DrawCircleLines(pos.x, pos.y, size, colour);
 }

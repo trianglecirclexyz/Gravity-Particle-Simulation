@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <random>
+#include <filesystem>
 #include <format>
 #include <thread>
 #include <raylib-cpp.hpp>
@@ -54,18 +55,20 @@ int main() {
     std::vector<Particle> particle_instances;
 
     // Spawn particles
-    for(int i = 0; i < screen_w; i += 45) {
-        for(int j = 0; j < screen_w; j += 45) {
+    int square_dim = 800;
+    raylib::Vector2 center = {screen_w / 2, screen_h / 2};
+    for(int i = center.x - square_dim / 2; i < center.x + square_dim / 2; i += 8) {
+        for(int j = center.y - square_dim / 2; j < center.y + square_dim / 2; j += 8) {
             Particle particle(i, j);
 
             // assign each particle a random speed
-            {
-                std::random_device rd;
-                std::mt19937 gen(rd()); 
-                std::uniform_real_distribution<double> distribution(-400.0, 400.0);
-                particle.vel.x = distribution(gen) / 10;
-                particle.vel.y = distribution(gen) / 10;    
-            }
+            // {
+            //     std::random_device rd;
+            //     std::mt19937 gen(rd()); 
+            //     std::uniform_real_distribution<double> distribution(-400.0, 400.0);
+            //     particle.vel.x = distribution(gen) / 10;
+            //     particle.vel.y = distribution(gen) / 10;    
+            // }
             // assign velocities according to a spiral shape
             {
                 raylib::Vector2 delta;
@@ -90,20 +93,27 @@ int main() {
     bool isMiddleMouseButtonDown = false;
     raylib::Vector2 lastMousePosition;
 
+    Quad boundary(
+        camera_bounds.x - 10 * camera_bounds.width,
+        camera_bounds.y - 10 * camera_bounds.width,
+        camera_bounds.width * 20,
+        camera_bounds.width * 20);
+
+    int frame_count = 0;
+
+    int target_fps = 60;
+    int target_frame = 600;
+
+    double dt = 1.0 / target_fps; // Set the delta time to be consistent at 60 fps
+
     while (!window.ShouldClose()) {   // Detect window close button or ESC key
 
         // double dt = simulation_speed*GetFrameTime(); // Get the delta time
         // std::cout << "dt: " << dt << std::endl;
-        double dt = 0.016; // Set the delta time to be consistent at 60 fps 
 
         // ** Calculations ** //
 
         // construct new Quad Tree
-        Quad boundary(
-            camera_bounds.x - 10 * camera_bounds.width,
-            camera_bounds.y - 10 * camera_bounds.width,
-            camera_bounds.width * 20,
-            camera_bounds.width * 20);
         QuadTree quad_tree(boundary, 2);
 
         // Reset acceleration for all particles to zero at the start of each frame
@@ -121,7 +131,7 @@ int main() {
             particle_instances[i].accel.x = 0;
             particle_instances[i].accel.y = 0;
 
-            quad_tree.Insert(particle_point);
+            // quad_tree.Insert(particle_point);
 
         }
 
@@ -228,7 +238,11 @@ int main() {
             }
 
             // Draw the quadtree 
-            quad_tree.Draw(cam);
+            // quad_tree.Draw(cam);
+
+            // save frames
+            std::string filename = std::format("frames/frame_{:04d}.png", frame_count);
+            raylib::TakeScreenshot(filename.c_str());
 
             cam.EndMode(); // stop drawing to camera
 
@@ -250,8 +264,34 @@ int main() {
         }
         EndDrawing();
 
-        // std::cout << "Frame end" << std::endl;
+        frame_count++;
+
+        if (frame_count == target_frame) {
+            break;
+        }
     }
- 
+
+    // stitch frames into video
+    std::string input_pattern = "frames/frame_%04d.png";
+    std::string output = "output.mp4";
+
+    std::string ffmpeg_cmd = std::format(
+        "ffmpeg -framerate {} -i {} -c:v libx264 -r {} -pix_fmt yuv420p {}",
+        target_fps, input_pattern, target_fps, output);
+
+    int result = std::system(ffmpeg_cmd.c_str());
+
+        if (result == 0) {
+        std::cout << "Video rendered successfully." << std::endl;
+    } else {
+        std::cerr << "Video failed to render." << std::endl;
+        return 1;
+    }
+    
+    // frames cleanup
+    for (const auto& entry : std::filesystem::directory_iterator("frames")) {
+        std::filesystem::remove(entry.path());
+    }
+
     return 0;
 }
