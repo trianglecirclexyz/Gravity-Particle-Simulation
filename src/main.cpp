@@ -55,20 +55,20 @@ int main() {
     std::vector<Particle> particle_instances;
 
     // Spawn particles
-    int square_dim = 800;
+    int square_dim = 400;
     raylib::Vector2 center = {screen_w / 2, screen_h / 2};
-    for(int i = center.x - square_dim / 2; i < center.x + square_dim / 2; i += 8) {
-        for(int j = center.y - square_dim / 2; j < center.y + square_dim / 2; j += 8) {
+    for(int i = center.x - square_dim / 2; i < center.x + square_dim / 2; i += 5) {
+        for(int j = center.y - square_dim / 2; j < center.y + square_dim / 2; j += 5) {
             Particle particle(i, j);
 
             // assign each particle a random speed
-            // {
-            //     std::random_device rd;
-            //     std::mt19937 gen(rd()); 
-            //     std::uniform_real_distribution<double> distribution(-400.0, 400.0);
-            //     particle.vel.x = distribution(gen) / 10;
-            //     particle.vel.y = distribution(gen) / 10;    
-            // }
+            {
+                std::random_device rd;
+                std::mt19937 gen(rd()); 
+                std::uniform_real_distribution<double> distribution(-400.0, 400.0);
+                particle.vel.x = distribution(gen) / 10;
+                particle.vel.y = distribution(gen) / 10;    
+            }
             // assign velocities according to a spiral shape
             {
                 raylib::Vector2 delta;
@@ -78,8 +78,8 @@ int main() {
                 raylib::Vector2 vel_vector;
                 vel_vector.x = delta.y;
                 vel_vector.y = -1*delta.x;
-                vel_vector.x *= 0.2;
-                vel_vector.y *= 0.2;
+                vel_vector.x *= 0.5;
+                vel_vector.y *= 0.5;
 
                 particle.vel += vel_vector;
             }
@@ -88,7 +88,7 @@ int main() {
         }
     }
 
-    double simulation_speed = 1;
+    double sim_speed = 0.25;
 
     bool isMiddleMouseButtonDown = false;
     raylib::Vector2 lastMousePosition;
@@ -102,9 +102,9 @@ int main() {
     int frame_count = 0;
 
     int target_fps = 60;
-    int target_frame = 600;
+    int target_frame = 4*600;
 
-    double dt = 1.0 / target_fps; // Set the delta time to be consistent at 60 fps
+    double dt = sim_speed / target_fps; // Set the delta time to be consistent at 60 fps
 
     while (!window.ShouldClose()) {   // Detect window close button or ESC key
 
@@ -276,7 +276,7 @@ int main() {
     std::string output = "output.mp4";
 
     std::string ffmpeg_cmd = std::format(
-        "ffmpeg -framerate {} -i {} -c:v libx264 -r {} -pix_fmt yuv420p {}",
+        "ffmpeg -y -framerate {} -i {} -c:v libx264 -r {} -pix_fmt yuv420p {}",
         target_fps, input_pattern, target_fps, output);
 
     int result = std::system(ffmpeg_cmd.c_str());

@@ -35,4 +35,4 @@ bin
 obj
 frames
 
-output.mp4
+*.mp4
